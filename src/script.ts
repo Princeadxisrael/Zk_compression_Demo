@@ -20,7 +20,6 @@ const TOKEN_SYMBOL = "ZKMAGIC";
 // Helius supports ZK Compression natively on both networks
  const RPC_URL = `https://devnet.helius-rpc.com?api-key=${process.env.API_KEY!}`;
  const connection= createRpc(RPC_URL);
-// ─────────────────────────────────────────────
 
 function loadOrCreateKeypair(): Keypair {
   if (process.env.PAYER_KEYPAIR) {
