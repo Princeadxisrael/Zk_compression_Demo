@@ -64,7 +64,6 @@ interface Stats {
 
 // ─────────────────────────────────────────────
 // ADDRESS GENERATION
-// ─────────────────────────────────────────────
 
 /**
  * Generates recipient addresses.
@@ -160,7 +159,6 @@ async function sendBatch(
 
 // ─────────────────────────────────────────────
 // PROGRESS DISPLAY
-// ─────────────────────────────────────────────
 
 function printProgress(stats: Stats) {
   const elapsed = (Date.now() - stats.startTime) / 1000;
@@ -175,10 +173,10 @@ function printProgress(stats: Stats) {
     : `${eta.toFixed(0)}s`;
 
   process.stdout.write(
-    `\r📤 Progress: ${pct}% | ` +
-    `✅ ${stats.sent * BATCH_SIZE}/${totalRecipients} recipients | ` +
-    `❌ ${stats.failed} failed batches | ` +
-    `⚡ ${(rate * BATCH_SIZE).toFixed(0)} addr/s | ` +
+    `\r Progress: ${pct}% | ` +
+    `${stats.sent * BATCH_SIZE}/${totalRecipients} recipients | ` +
+    `${stats.failed} failed batches | ` +
+    `${(rate * BATCH_SIZE).toFixed(0)} addr/s | ` +
     `⏱ ETA: ${etaStr}   `
   );
 }
@@ -200,7 +198,7 @@ async function main() {
   }
 
   console.log("╔══════════════════════════════════════════════════╗");
-  console.log("║  ZK Compression Airdrop - 1M Addresses on Solana  ║");
+  console.log("║  ZK Compression Airdrop -> 1M Addresses on Solana║");
   console.log("╚══════════════════════════════════════════════════╝\n");
 
   const payer = Keypair.fromSecretKey(bs58.decode(PAYER_KEYPAIR_BS58));
@@ -208,15 +206,15 @@ async function main() {
   const connection: Rpc = createRpc(RPC_ENDPOINT, RPC_ENDPOINT, RPC_ENDPOINT);
 
   console.log(`📍 Payer: ${payer.publicKey.toBase58()}`);
-  console.log(`🪙 Mint: ${mint.toBase58()}`);
-  console.log(`👥 Recipients: ${TOTAL_RECIPIENTS.toLocaleString()}`);
-  console.log(`📦 Tokens per recipient: ${TOKENS_PER_RECIPIENT}`);
-  console.log(`📊 Batch size: ${BATCH_SIZE} recipients/tx`);
-  console.log(`⚡ Concurrent batches: ${CONCURRENT_BATCHES}\n`);
+  console.log(` Mint: ${mint.toBase58()}`);
+  console.log(` Recipients: ${TOTAL_RECIPIENTS.toLocaleString()}`);
+  console.log(` Tokens per recipient: ${TOKENS_PER_RECIPIENT}`);
+  console.log(` Batch size: ${BATCH_SIZE} recipients/tx`);
+  console.log(` Concurrent batches: ${CONCURRENT_BATCHES}\n`);
 
   // Check balance
   const balance = await connection.getBalance(payer.publicKey);
-  console.log(`💰 Payer balance: ${(balance / LAMPORTS_PER_SOL).toFixed(4)} SOL\n`);
+  console.log(` Payer balance: ${(balance / LAMPORTS_PER_SOL).toFixed(4)} SOL\n`);
 
   // Get source token account
   const sourceTokenAccount = await getOrCreateAssociatedTokenAccount(
@@ -225,7 +223,7 @@ async function main() {
     mint,
     payer.publicKey
   );
-  console.log(`📥 Source ATA: ${sourceTokenAccount.address.toBase58()}`);
+  console.log(`   Source ATA: ${sourceTokenAccount.address.toBase58()}`);
   console.log(`   Balance: ${sourceTokenAccount.amount.toLocaleString()} tokens\n`);
 
   // Build batches
@@ -310,17 +308,25 @@ async function main() {
     printProgress(stats);
   }
 
+  
   // ─── RETRY FAILED BATCHES ───
   if (failedBatches.length > 0) {
-    console.log(`\n\n⚠️  Retrying ${failedBatches.length} failed batches...`);
+    console.log(`\n\n Retrying ${failedBatches.length} failed batches...`);
 
-    for (const idx of failedBatches) {
+const retryBatches = failedBatches
+  .map(idx => ({ idx, recipients: allBatches[idx] }))
+  .filter(
+    (b): b is { idx: number; recipients: PublicKey[] } =>
+      b.recipients !== undefined
+  );
+
+  for (const {idx, recipients} of retryBatches) {
       const result = await sendBatch(
         connection,
         payer,
         mint,
         sourceTokenAccount.address,
-        allBatches[idx],
+        recipients,
         TOKENS_PER_RECIPIENT,
         idx
       );
@@ -344,8 +350,8 @@ async function main() {
   console.log(`\n✅ Successful recipients: ${successfulRecipients.toLocaleString()}`);
   console.log(`❌ Failed batches: ${stats.failed}`);
   console.log(`⏱  Total time: ${(elapsed / 60).toFixed(1)} minutes`);
-  console.log(`💸 SOL spent: ${solSpent.toFixed(4)} SOL`);
-  console.log(`💰 USD cost: ~$${(solSpent * 150).toFixed(2)} (at $150/SOL)`);
+  console.log(`    SOL spent: ${solSpent.toFixed(4)} SOL`);
+  console.log(`    USD cost: ~$${(solSpent * 150).toFixed(2)} (at $150/SOL)`);
   console.log(`\n🎉 ZK Compression savings vs regular SPL:`);
   console.log(`   Regular SPL would cost: ~${(2_000_000 * successfulRecipients / LAMPORTS_PER_SOL).toFixed(0)} SOL`);
   console.log(`   ZK Compressed cost:     ~${solSpent.toFixed(4)} SOL`);
