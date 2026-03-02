@@ -121,11 +121,11 @@ TOKENS_PER_RECIPIENT=${TOKENS_PER_RECIPIENT}
 `;
 
   fs.writeFileSync(".env", envContent);
-  console.log("💾 Saved configuration to .env\n");
+  console.log(" Saved configuration to .env\n");
 
   // Print cost estimate
   console.log("═══════════════════════════════════════════");
-  console.log("📊 Cost Estimate for 1M Address Airdrop");
+  console.log(" Cost Estimate for 1M Address Airdrop");
   console.log("═══════════════════════════════════════════");
   const batchSize = 14; // safe batch size for ZK compressed transfers
   const numBatches = Math.ceil(TOTAL_RECIPIENTS / batchSize);
