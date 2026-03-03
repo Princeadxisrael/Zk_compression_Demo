@@ -1,15 +1,14 @@
 import {Keypair, LAMPORTS_PER_SOL} from "@solana/web3.js";
-import {createRpc,confirmTx,Rpc} from "@lightprotocol/stateless.js";
-import {createMintInterface, createSplInterface, createAtaInterface, mintToInterface, getAssociatedTokenAddressInterface} from "@lightprotocol/compressed-token";
-import { mintTo as splMintTo, getOrCreateAssociatedTokenAccount } from "@solana/spl-token";
+import {createRpc,c} from "@lightprotocol/stateless.js";
+import {createMintInterface, createAtaInterface, mintToInterface, getAssociatedTokenAddressInterface} from "@lightprotocol/compressed-token";
 import bs58 from "bs58";
-import dotenv from "dotenv";
 import fs from "fs";
 import os from "os";
 import path from "path";
 
 import "dotenv/config"
 
+console.log(process.env.API_KEY);
 
 const TOTAL_RECIPIENTS = 1_000_000;
 const TOKENS_PER_RECIPIENT = 1; // 1 token each
@@ -18,8 +17,11 @@ const TOKEN_SYMBOL = "ZKMAGIC";
 
 // Network: use devnet for free testing, mainnet-beta for real
 // Helius supports ZK Compression natively on both networks
- const RPC_URL = `https://devnet.helius-rpc.com?api-key=${process.env.API_KEY!}`;
- const connection= createRpc(RPC_URL);
+const RPC_URL = `https://devnet.helius-rpc.com/?api-key=${process.env.API_KEY!}`;
+const connection = createRpc(RPC_URL, RPC_URL, RPC_URL); // pass it three times. I wonder why?
+
+//confirm URL isn't empty at runtime
+console.log("RPC_URL:", RPC_URL);
 
 function loadOrCreateKeypair(): Keypair {
   if (process.env.PAYER_KEYPAIR) {
@@ -58,7 +60,7 @@ async function main() {
     console.log("   (repeat a few times to get enough SOL)\n");
   }
 
-  // Step 1: Create compressed token mint
+  // Create compressed token mint
   console.log(" Creating compressed token mint...");
   const mintKeypair = Keypair.generate();
 
@@ -70,52 +72,59 @@ async function main() {
   console.log(`Mint created: ${mint.toBase58()}`);
   console.log(` Tx: ${mintTxSig}\n`);
 
-  // Step 2: Create token pool (enables compression)
+  // Create token pool (enables compression)
   // Note: createMint in newer versions may already create the pool
   // This ensures the pool exists
-  try {
-    console.log(" Setting up token pool for compression...");
-    const poolTx = await createSplInterface(connection, payer, mint);
-    console.log(` Token pool ready: ${poolTx}\n`);
-  } catch (e: any) {
-    // Pool may already exist if createMint created it
-    if (e.message?.includes("already in use") || e.message?.includes("custom program error: 0x0")) {
-      console.log(" Token pool already exists\n");
-    } else {
-      throw e;
-    }
-  }
+//   console.log(" Setting up token pool for compression...");
+//   try {
+//     const poolTx = await createTokenPool(
+//   connection,
+//   payer,
+//   mint,
+//   undefined,            // confirmOptions (4th)
+//   TOKEN_2022_PROGRAM_ID // tokenProgramId (5th)
+// );;
+//     console.log(` Token pool ready: ${poolTx}\n`);
+//   } catch (e: any) {
+//     // Pool may already exist if createMint created it
+//     if (e.message?.includes("already in use") || e.message?.includes("custom program error: 0x0")) {
+//       console.log(" Token pool already exists\n");
+//     } else {
+//       throw e;
+//     }
+//   }
 
-  // Step 3: Create ATA and mint total supply
-  const totalSupply = TOTAL_RECIPIENTS * TOKENS_PER_RECIPIENT;
-  console.log(`📦 Minting ${totalSupply.toLocaleString()} tokens to payer ATA...`);
+  
+// Create it
+console.log("Creating payer ATA...");
+await createAtaInterface(connection, payer, mint, payer.publicKey);
+const ataAddress = getAssociatedTokenAddressInterface(mint, payer.publicKey);
+console.log(`ATA: ${ataAddress.toBase58()}\n`);
 
-  const ata = await getOrCreateAssociatedTokenAccount(
-    connection,
-    payer,
-    mint,
-    payer.publicKey
-  );
+const totalSupply = TOTAL_RECIPIENTS * TOKENS_PER_RECIPIENT;
+console.log(`Minting ${totalSupply.toLocaleString()} tokens to payer ATA...`);
 
-  const mintToTx = await splMintTo(
-    connection,
-    payer,
-    mint,
-    ata.address,
-    payer, // mint authority
-    BigInt(totalSupply)
-  );
+
+// mint to it
+const mintToTx = await mintToInterface(
+  connection,
+  payer,
+  mint,
+  ataAddress,
+  payer,           // mint authority
+  BigInt(totalSupply)
+);
 
   console.log(`✅ Minted ${totalSupply.toLocaleString()} ${TOKEN_SYMBOL} tokens`);
-  console.log(`   ATA: ${ata.address.toBase58()}`);
+  // console.log(`   ATA: ${ata.address.toBase58()}`);
   console.log(`   Tx: ${mintToTx}\n`);
 
-  // Step 4: Save mint address to .env
-  const envContent = `# ZK Compression Airdrop Configuration
+  // Save mint address to .env
+const envContent = `# ZK Compression Airdrop Configuration
 RPC_ENDPOINT=${RPC_URL}
 PAYER_KEYPAIR=${bs58.encode(payer.secretKey)}
 MINT_ADDRESS=${mint.toBase58()}
-PAYER_ATA=${ata.address.toBase58()}
+PAYER_ATA=${ataAddress.toBase58()}
 TOTAL_RECIPIENTS=${TOTAL_RECIPIENTS}
 TOKENS_PER_RECIPIENT=${TOKENS_PER_RECIPIENT}
 `;

@@ -24,22 +24,16 @@ import {
 } from "@lightprotocol/stateless.js";
 import {
   CompressedTokenProgram,
+ getAssociatedTokenAddressInterface,
  getSplInterfaceInfos,
   selectSplInterfaceInfo,
 } from "@lightprotocol/compressed-token";
-import { getOrCreateAssociatedTokenAccount } from "@solana/spl-token";
 import bs58 from "bs58";
 import dotenv from "dotenv";
 import fs from "fs";
 
 dotenv.config();
 
-//config
-const RPC_ENDPOINT = process.env.RPC_URL!;
-const MINT_ADDRESS = process.env.MINT_ADDRESS!;
-const PAYER_KEYPAIR_BS58 = process.env.PAYER_KEYPAIR!;
-const TOTAL_RECIPIENTS = parseInt(process.env.TOTAL_RECIPIENTS || "1000000");
-const TOKENS_PER_RECIPIENT = parseInt(process.env.TOKENS_PER_RECIPIENT || "1");
 
 // Tuning knobs
 const BATCH_SIZE = 14;          // recipients per transaction (safe limit)
@@ -189,13 +183,23 @@ function sleep(ms: number): Promise<void> {
 }
 
 async function main() {
+
+
+//config
+const API_KEY = process.env.API_KEY;
+const MINT_ADDRESS = process.env.MINT_ADDRESS!;
+const PAYER_KEYPAIR_BS58 = process.env.PAYER_KEYPAIR!;
+const TOTAL_RECIPIENTS = parseInt(process.env.TOTAL_RECIPIENTS || "1000000");
+const TOKENS_PER_RECIPIENT = parseInt(process.env.TOKENS_PER_RECIPIENT || "1");
   // Validate config
-  if (!RPC_ENDPOINT || !MINT_ADDRESS || !PAYER_KEYPAIR_BS58) {
+  if (!API_KEY || !MINT_ADDRESS || !PAYER_KEYPAIR_BS58) {
     console.error("❌ Missing required environment variables.");
     console.error("   Run 'npm run setup-mint' first, or set in .env:");
     console.error("   RPC_ENDPOINT, MINT_ADDRESS, PAYER_KEYPAIR");
     process.exit(1);
   }
+
+   const RPC_URL = `https://devnet.helius-rpc.com/?api-key=${API_KEY}`;
 
   console.log("╔══════════════════════════════════════════════════╗");
   console.log("║  ZK Compression Airdrop -> 1M Addresses on Solana║");
@@ -203,7 +207,7 @@ async function main() {
 
   const payer = Keypair.fromSecretKey(bs58.decode(PAYER_KEYPAIR_BS58));
   const mint = new PublicKey(MINT_ADDRESS);
-  const connection: Rpc = createRpc(RPC_ENDPOINT, RPC_ENDPOINT, RPC_ENDPOINT);
+  const connection: Rpc = createRpc(RPC_URL, RPC_URL, RPC_URL);
 
   console.log(`📍 Payer: ${payer.publicKey.toBase58()}`);
   console.log(` Mint: ${mint.toBase58()}`);
@@ -217,14 +221,11 @@ async function main() {
   console.log(` Payer balance: ${(balance / LAMPORTS_PER_SOL).toFixed(4)} SOL\n`);
 
   // Get source token account
-  const sourceTokenAccount = await getOrCreateAssociatedTokenAccount(
-    connection,
-    payer,
-    mint,
-    payer.publicKey
-  );
-  console.log(`   Source ATA: ${sourceTokenAccount.address.toBase58()}`);
-  console.log(`   Balance: ${sourceTokenAccount.amount.toLocaleString()} tokens\n`);
+ 
+  // Use Interface helper to get the ATA — consistent with how setup-mint created it
+  const sourceAta = getAssociatedTokenAddressInterface(mint, payer.publicKey);
+  console.log(`📥 Source ATA: ${sourceAta.toBase58()}\n`);
+
 
   // Build batches
   const totalBatches = Math.ceil(TOTAL_RECIPIENTS / BATCH_SIZE);
