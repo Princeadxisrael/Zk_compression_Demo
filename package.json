@@ -6,7 +6,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "setup-mint": "tsx src/script.ts",
     "airdrop": "tsx src/airdrop.ts",
-    "estimate": "tsx src/cost_estimate.ts"
+    "estimate": "tsx src/cost_estimate.ts",
+    "create-pool": "tsx src/create_spl_interface.ts"
   },
   "keywords": [],
   "author": "",
