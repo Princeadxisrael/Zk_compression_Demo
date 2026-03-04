@@ -90,7 +90,7 @@ tasks/todo.md          # Project plan
 - Replace `generateRecipientAddresses()` with your real address list from a JSON/CSV file
 - Increase `CONCURRENT_BATCHES` for faster distribution (check RPC rate limits)
 - Checkpoint file `.airdrop-checkpoint.json` enables resume on interruption
-- Consider a paid Helius plan for high-throughput airdrops
+- Consider a paid RPC plan for high-throughput airdrops
 
 ## Links
 

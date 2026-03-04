@@ -17,9 +17,9 @@ import fs from "fs";
 import "dotenv/config";
 
 const BATCH_SIZE = 1;             // one recipient per tx (transfer is 1:1)
-const CONCURRENT_BATCHES = 3;     // one at a time to avoid rate limits
+const CONCURRENT_BATCHES = 3;     
 const MAX_RETRIES = 5;
-const DELAY_MS = 1000;            // 2s between transactions
+const DELAY_MS = 1000;            // 1s between transactions
 
 interface Stats {
   sent: number;
@@ -51,15 +51,18 @@ async function sendToRecipient(
         payer,
         mint,
         recipient,
-        payer,        // owner of compressed tokens
-        amount,    // destination
+        payer,      
+        amount,    
       );
       return { success: true };
     } catch (error: any) {
       if (attempt === MAX_RETRIES) {
         return { success: false, error: error.message || String(error) };
       }
-      const delay = error.message?.includes("429") ? 3000 * attempt : 1000 * attempt;
+
+      const is429 = error.message?.includes("429");
+      const isConnReset = error.message?.includes("ECONNRESET") || error.cause?.code === "ECONNRESET";
+      const delay = is429 ? 3000 * attempt : isConnReset ? 2000 : 1000 * attempt;
       await sleep(delay);
     }
   }
