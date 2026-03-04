@@ -82,7 +82,7 @@ vs regular SPL token accounts: ~2,039 SOL = **~$300,000** (400x more expensive)
 src/setup-mint.ts      # Create mint + fund supply (run once)
 src/airdrop.ts         # Main airdrop with batching + progress
 src/estimate-cost.ts   # Cost calculator
-tasks/todo.md          # Project plan
+src/test.ts            # tests
 ```
 
 ## Production Tips
