@@ -33,11 +33,11 @@ async function main() {
   console.log(` Balance: ${balance / LAMPORTS_PER_SOL} SOL\n`);
 
   if (balance < 0.1 * LAMPORTS_PER_SOL) {
-    console.error("⚠️  Low balance! Run: solana airdrop 2 --url devnet");
+    console.error("  Low balance! Run: solana airdrop 2 --url devnet");
     process.exit(1);
   }
 
-  // Step 1: Create mint (automatically creates token pool)
+  // Create mint (automatically creates token pool)
   console.log(" Creating mint...");
   const mintKeypair = Keypair.generate();
   const { mint, transactionSignature: mintTx } = await createMint(
@@ -50,7 +50,7 @@ async function main() {
   console.log(`✅ Mint: ${mint.toBase58()}`);
   console.log(`   Tx: ${mintTx}\n`);
 
-  // Step 2: Mint total supply directly to payer as compressed tokens
+  //  Mint total supply directly to payer as compressed tokens
   // mintTo() mints to a public key directly — no ATA needed
   const totalSupply = TOTAL_RECIPIENTS * TOKENS_PER_RECIPIENT;
   console.log(` Minting ${totalSupply.toLocaleString()} ${TOKEN_SYMBOL} tokens...`);
@@ -64,9 +64,9 @@ async function main() {
   );
   console.log(`✅ Minted! Tx: ${mintToTx}\n`);
 
-  // Step 3: Save to .env
+  //  Save to .env
   const envContent = `# ZK Compression Airdrop Configuration
-RPC_ENDPOINT=${RPC_ENDPOINT}
+RPC_ENDPOINT=https://devnet.helius-rpc.com/?api-key=${process.env.RPC_ENDPOINT!.split('api-key=')[1]}
 PAYER_KEYPAIR=${bs58.encode(payer.secretKey)}
 MINT_ADDRESS=${mint.toBase58()}
 TOTAL_RECIPIENTS=${TOTAL_RECIPIENTS}

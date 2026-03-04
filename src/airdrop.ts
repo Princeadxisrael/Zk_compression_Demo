@@ -9,6 +9,7 @@ import {
 } from "@lightprotocol/stateless.js";
 import {
   transfer,
+  mintTo
 } from "@lightprotocol/compressed-token";
 import bs58 from "bs58";
 import fs from "fs";
@@ -16,9 +17,9 @@ import fs from "fs";
 import "dotenv/config";
 
 const BATCH_SIZE = 1;             // one recipient per tx (transfer is 1:1)
-const CONCURRENT_BATCHES = 5;     // one at a time to avoid rate limits
+const CONCURRENT_BATCHES = 3;     // one at a time to avoid rate limits
 const MAX_RETRIES = 5;
-const DELAY_MS = 500;            // 2s between transactions
+const DELAY_MS = 1000;            // 2s between transactions
 
 interface Stats {
   sent: number;
@@ -45,13 +46,13 @@ async function sendToRecipient(
 ): Promise<{ success: boolean; error?: string }> {
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const txSig = await transfer(
+      const txSig = await mintTo(
         connection,
         payer,
         mint,
-        amount,
+        recipient,
         payer,        // owner of compressed tokens
-        recipient,    // destination
+        amount,    // destination
       );
       return { success: true };
     } catch (error: any) {
